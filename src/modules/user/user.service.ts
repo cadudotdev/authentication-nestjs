@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { UserInterface } from 'src/types/user.interface';
+import { cryptPassword } from 'src/utils/security.utils';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -18,7 +19,13 @@ export class UserService {
   }
 
   async create(user: UserInterface): Promise<UserInterface> {
-    return this.userRepository.save(user);
+    return this.userRepository.save({
+      ...user,
+      password: await cryptPassword(
+        user.password,
+        Number(process.env.SALT_ROUDS),
+      ),
+    });
   }
 
   async update(id: string, user: UserInterface): Promise<boolean> {
@@ -33,5 +40,9 @@ export class UserService {
       .delete(id)
       .then(() => true)
       .catch(() => false);
+  }
+
+  async findByEmail(email: string): Promise<UserInterface> {
+    return this.userRepository.findOne({ where: { email } });
   }
 }
